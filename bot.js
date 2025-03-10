@@ -92,13 +92,17 @@ async function checkWalletStatuses() {
 		statuses.push({
 			address: address,
 			status: status,
+			lastTransaction: lastTransactionTime,
 		});
 	}
 
 	console.log(statuses);
 
 	const formattedResponse = statuses
-		.map((status) => `<b>${status.address}</b>\nStatus: ${status.status}`)
+		.map(
+			(status) =>
+				`<b>${status.address}</b>\nStatus: ${status.status} \nEtherscan: <a href="https://sepolia.etherscan.io/address/${status.address}">View on Etherscan</a>`
+		)
 		.join("\n\n");
 
 	const header = "<b>🔍 WALLET STATUS REPORT 🔍</b>\n\n";
