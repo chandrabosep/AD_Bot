@@ -1,0 +1,15 @@
+{
+  "name": "airdrop-bot",
+  "version": "1.0.0",
+  "description": "airdrop bot made by chandrabose.eth",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "chandrabose.eth",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
