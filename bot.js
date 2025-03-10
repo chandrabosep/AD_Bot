@@ -14,8 +14,7 @@ bot.onText(/\/(start|help)/, (msg) => {
 
 <b>Available commands:</b>
 🔸 /start - Start the bot
-🔸 /status - Check status of your wallet addresses
-🔸 /checkpoints - Check the status for the last 24 hours`,
+🔸 /status - Check status of your wallet addresses`,
 		{ parse_mode: "HTML" }
 	);
 });
@@ -92,7 +91,6 @@ async function checkWalletStatuses() {
 		statuses.push({
 			address: address,
 			status: status,
-			lastTransaction: lastTransactionTime,
 		});
 	}
 
