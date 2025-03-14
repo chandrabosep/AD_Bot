@@ -137,6 +137,30 @@ async function getCheckpoints() {
 	}
 
 	const checkpoints = [];
+	const emojis = [
+		"🤖",
+		"👽",
+		"👻",
+		"🐶",
+		"🐱",
+		"🐭",
+		"🐹",
+		"🚀",
+		"👾",
+		"🦾",
+		"🧨",
+		"🎃",
+		"🐰",
+		"🦊",
+		"⭐",
+		"🌟",
+		"✨",
+		"⚡",
+		"🔥",
+		"💥",
+		"☃️",
+		"🌸",
+	];
 
 	for (const address of parsedAddresses) {
 		const url = `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&page=1&offset=2000&startblock=7852278&sort=desc&apikey=${process.env.ETHERSCAN_API_KEY}`;
@@ -161,6 +185,7 @@ async function getCheckpoints() {
 				: lastCheckpointTime < 24
 				? `${(lastCheckpointTime * 60).toFixed(0)} minutes`
 				: `${(lastCheckpointTime / 24).toFixed(2)} days`;
+		const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
 
 		checkpoints.push({
 			address,
@@ -168,6 +193,7 @@ async function getCheckpoints() {
 			lastCheckpoint: {
 				time: lastCheckpointReadable,
 			},
+			emoji: randomEmoji,
 		});
 	}
 
@@ -180,7 +206,7 @@ async function getCheckpoints() {
 			} = checkpoint;
 			return `<b>${index + 1}. ${address}</b>\nLast Recorded: ${
 				lastCheckpoint.time
-			} ago\nCheckpoints: ${totalCheckpoints}`;
+			} ago\n${checkpoint.emoji} Checkpoints: ${totalCheckpoints}`;
 		})
 		.join("\n\n");
 
