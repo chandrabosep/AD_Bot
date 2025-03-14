@@ -47,17 +47,6 @@ async function checkWalletStatuses() {
 
 	const statuses = [];
 
-	function getTimeDifference(transactionTimestamp) {
-		const now = new Date();
-		const currentUnixTimestamp = now.getTime() / 1000;
-
-		const transactionUnixTimestamp = transactionTimestamp;
-
-		const timeDiff =
-			(currentUnixTimestamp - transactionUnixTimestamp) / 3600;
-		return timeDiff;
-	}
-
 	for (const [index, address] of parsedAddresses.entries()) {
 		const url = `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&page=1&offset=1&sort=desc&apikey=${process.env.ETHERSCAN_API_KEY}`;
 
@@ -90,9 +79,18 @@ async function checkWalletStatuses() {
 			}
 		}
 
+		const lastCheckpointTime = getTimeDifference(transactions[0].timeStamp);
+		const lastCheckpointReadable =
+			lastCheckpointTime < 5 / 60
+				? "less than a minute"
+				: lastCheckpointTime < 24
+				? `${(lastCheckpointTime * 60).toFixed(0)} minutes`
+				: `${(lastCheckpointTime / 24).toFixed(2)} days`;
+
 		statuses.push({
 			address: address,
 			status: status,
+			lastCheckpoint: lastCheckpointReadable,
 		});
 	}
 
@@ -103,11 +101,11 @@ async function checkWalletStatuses() {
 			(status) =>
 				`<b>${statuses.indexOf(status) + 1}. ${
 					status.address
-				}</b>\nStatus: ${
-					status.status
-				} \nEtherscan: <a href="https://sepolia.etherscan.io/address/${
+				}</b>\nStatus: ${status.status}\nLast Checkpoint: ${
+					status.lastCheckpoint
+				} ago\nEtherscan: <a href="https://sepolia.etherscan.io/address/${
 					status.address
-				}">View on Etherscan</a>`
+				}">Etherscan</a> `
 		)
 		.join("\n\n");
 
@@ -155,19 +153,49 @@ async function getCheckpoints() {
 		}
 
 		const totalCheckpoints = data.result.length;
-		checkpoints.push({ address, checkpoints: totalCheckpoints });
+		const lastCheckpointTimestamp = data.result[0].timeStamp;
+		const lastCheckpointTime = getTimeDifference(lastCheckpointTimestamp);
+		const lastCheckpointReadable =
+			lastCheckpointTime < 5 / 60
+				? "less than a minute"
+				: lastCheckpointTime < 24
+				? `${(lastCheckpointTime * 60).toFixed(0)} minutes`
+				: `${(lastCheckpointTime / 24).toFixed(2)} days`;
+
+		checkpoints.push({
+			address,
+			checkpoints: totalCheckpoints,
+			lastCheckpoint: {
+				time: lastCheckpointReadable,
+			},
+		});
 	}
+
 	const formattedResponse = checkpoints
-		.map(
-			(checkpoint) =>
-				`<b>${checkpoints.indexOf(checkpoint) + 1}. ${
-					checkpoint.address
-				}</b>\nCheckpoints: ${checkpoint.checkpoints}`
-		)
+		.map((checkpoint, index) => {
+			const {
+				address,
+				lastCheckpoint,
+				checkpoints: totalCheckpoints,
+			} = checkpoint;
+			return `<b>${index + 1}. ${address}</b>\nLast Recorded: ${
+				lastCheckpoint.time
+			} ago\nCheckpoints: ${totalCheckpoints}`;
+		})
 		.join("\n\n");
 
 	const header = "<b>🔍 CHECKPOINTS REPORT 🔍</b>\n\n";
 	return header + (formattedResponse || "No wallet addresses configured");
+}
+
+function getTimeDifference(transactionTimestamp) {
+	const now = new Date();
+	const currentUnixTimestamp = now.getTime() / 1000;
+
+	const transactionUnixTimestamp = transactionTimestamp;
+
+	const timeDiff = (currentUnixTimestamp - transactionUnixTimestamp) / 3600;
+	return timeDiff;
 }
 
 setInterval(async () => {
