@@ -14,7 +14,9 @@ bot.onText(/\/(start|help)/, (msg) => {
 
 <b>Available commands:</b>
 🔸 /start - Start the bot
-🔸 /status - Check status of your wallet addresses`,
+🔸 /status - Check status of your wallet addresses
+🔸 /checkpoints - Get all checkpoints of your wallet addresses
+`,
 		{ parse_mode: "HTML" }
 	);
 });
@@ -99,11 +101,72 @@ async function checkWalletStatuses() {
 	const formattedResponse = statuses
 		.map(
 			(status) =>
-				`<b>${status.address}</b>\nStatus: ${status.status} \nEtherscan: <a href="https://sepolia.etherscan.io/address/${status.address}">View on Etherscan</a>`
+				`<b>${statuses.indexOf(status) + 1}. ${
+					status.address
+				}</b>\nStatus: ${
+					status.status
+				} \nEtherscan: <a href="https://sepolia.etherscan.io/address/${
+					status.address
+				}">View on Etherscan</a>`
 		)
 		.join("\n\n");
 
 	const header = "<b>🔍 WALLET STATUS REPORT 🔍</b>\n\n";
+	return header + (formattedResponse || "No wallet addresses configured");
+}
+
+bot.onText(/\/checkpoints/, async (msg) => {
+	const chatId = msg.chat.id;
+	bot.sendMessage(chatId, await getCheckpoints(), {
+		parse_mode: "HTML",
+	});
+});
+
+async function getCheckpoints() {
+	const addresses = process.env.ADDRESSES;
+
+	if (!addresses) {
+		console.error("ADDRESSES is not defined or is empty in .env");
+		return "No wallet addresses configured";
+	}
+
+	let parsedAddresses;
+	try {
+		parsedAddresses = JSON.parse(addresses);
+	} catch (error) {
+		console.error("Error parsing ADDRESSES:", error);
+		return "Invalid wallet addresses format";
+	}
+
+	const checkpoints = [];
+
+	for (const address of parsedAddresses) {
+		const url = `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&page=1&offset=2000&startblock=7852278&sort=desc&apikey=${process.env.ETHERSCAN_API_KEY}`;
+
+		let data;
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+
+			const response = await fetch(url);
+			data = await response.json();
+		} catch (error) {
+			console.error("Error fetching data:", error);
+			continue;
+		}
+
+		const totalCheckpoints = data.result.length;
+		checkpoints.push({ address, checkpoints: totalCheckpoints });
+	}
+	const formattedResponse = checkpoints
+		.map(
+			(checkpoint) =>
+				`<b>${checkpoints.indexOf(checkpoint) + 1}. ${
+					checkpoint.address
+				}</b>\nCheckpoints: ${checkpoint.checkpoints}`
+		)
+		.join("\n\n");
+
+	const header = "<b>🔍 CHECKPOINTS REPORT 🔍</b>\n\n";
 	return header + (formattedResponse || "No wallet addresses configured");
 }
 
