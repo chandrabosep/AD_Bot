@@ -214,6 +214,69 @@ async function getCheckpoints() {
 	return header + (formattedResponse || "No wallet addresses configured");
 }
 
+bot.onText(/\/allcheckpoints/, async (msg) => {
+	const chatId = msg.chat.id;
+	bot.sendMessage(chatId, await getAllCheckpoints(), {
+		parse_mode: "HTML",
+	});
+});
+
+async function getAllCheckpoints() {
+	const addresses = process.env.ALL_ADDRESSES;
+
+	if (!addresses) {
+		console.error("ALL_ADDRESSES is not defined or is empty in .env");
+		return "No wallet addresses configured";
+	}
+
+	let parsedAddresses;
+	try {
+		// Trim whitespace and ensure proper JSON format
+		const cleanedAddresses = addresses.trim();
+		parsedAddresses = JSON.parse(cleanedAddresses);
+	} catch (error) {
+		console.error("Error parsing ALL_ADDRESSES:", error);
+		// More descriptive error message
+		return "Invalid wallet addresses format. Please check the ALL_ADDRESSES format in your .env file.";
+	}
+
+	let totalCheckpointsCount = 0;
+	let processedAddresses = 0;
+
+	for (const address of parsedAddresses) {
+		// Validate address format before making API call
+		if (!address || typeof address !== 'string' || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
+			console.error(`Invalid address format: ${address}`);
+			continue;
+		}
+
+		const url = `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&page=1&offset=2000&startblock=7852278&sort=desc&apikey=${process.env.ETHERSCAN_API_KEY}`;
+
+		let data;
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+
+			const response = await fetch(url);
+			data = await response.json();
+			
+			if (data.status !== "1") {
+				console.error(`API error for address ${address}: ${data.message}`);
+				continue;
+			}
+			
+			const addressCheckpoints = data.result.length;
+			totalCheckpointsCount += addressCheckpoints;
+			processedAddresses++;
+		} catch (error) {
+			console.error(`Error fetching data for address ${address}:`, error);
+			continue;
+		}
+	}
+
+	const header = `<b>🔍 CHECKPOINTS REPORT 🔍</b>\n<b>Total Checkpoints: ${totalCheckpointsCount}</b>\n<b>Processed Addresses: ${processedAddresses}/${parsedAddresses.length}</b>\n\n`;
+	return header;
+}
+
 function getTimeDifference(transactionTimestamp) {
 	const now = new Date();
 	const currentUnixTimestamp = now.getTime() / 1000;
